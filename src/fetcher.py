@@ -16,6 +16,7 @@ def fetch_html(url: str, timeout=12) -> Optional[str]:
         r = requests.get(url, headers=headers, timeout=timeout)
         r.raise_for_status()
         time.sleep(random.uniform(0.8, 1.6))
+        print("[fetch]", r.status_code, r.url, "redirects:", len(r.history))
         return r.text
     except requests.RequestException:
         return None
