@@ -8,6 +8,8 @@ def classify(url):
         or "facebook.com/stroy.php" in url
         or "facebook.com/permalink.php" in url
         or "facebook.com/share/v/" in url
+        or "fb.watch" in url
+        or "fb.watch/" in url
         ):
         return "fb_post"
     elif "facebook.com" in url:
