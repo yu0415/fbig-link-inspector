@@ -3,7 +3,7 @@ def classify(url):
     
     if "facebook.com/groups/" in url:
         return "fb_group"
-    elif "facebook.com/posts/" in url:
+    elif "facebook.com" in url and "/posts/" not in url:
         return "fb_post"
     elif "facebook.com" in url:
         return "fb_page"
