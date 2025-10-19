@@ -31,11 +31,11 @@
     過程方法敘述 
     （一）過程方法敘述
 	1.	建立專案結構（src/, tests/, requirements.txt, README.md）。
-	2.	完成 fetcher.py 用於安全擷取URL HTML，含 timeout 與 redirect 控制。
+	2.	完成 fetcher.py 用於安全擷取 URL HTML，含 timeout 與 redirect 控制。
 	3.	設計 parser.py 與 inspect.py 處理 meta fallback（支援meta[name<title>,og:image）。
 	4.	建立 classifier.py，用於後續連結型態分類（FB / IG / 外部）。
 	5.	建立 tests/test_classifier.py 用於基礎自動化測試。
-	6.	驗證多組連結（fb.me, l.facebook.com,facebook.com/share,instagram.com/reel/...）。
+	6.	驗證多組連結（fb.me, l.facebook.com, facebook.com/share,instagram.com/reel/...）。
    - 使用之程式方法  
    - 使用之工具  
    - **完成事項**（進度或解決之問題）  
