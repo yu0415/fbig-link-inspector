@@ -30,7 +30,7 @@
 3️⃣ 程式需模組化、可快速整合 API
 行業別：社群媒體資料分析 / 網路爬蟲自動化
 
-**（一）2025/10/18**
+**2025/10/18**
 
 1. 建立 GitHub 專案並初始化目錄結構（src/, tests/）。
 2. 設定 .gitignore、README.md、requirements.txt。
@@ -39,7 +39,7 @@
 5. 驗證 Python 3.7 環境相容性並修正 import path 問題。
 6. 首次 push 至 GitHub，commit 訊息：init: project scaffold。
 
-**（二）2025/10/19**
+**2025/10/19**
 
 1. 測試 fetch_html() 函式於多種 Facebook 連結型態。
 2. 驗證短連結（fb.me, l.facebook.com）與正式網址轉址行為。
@@ -47,7 +47,19 @@
 4. 新增 timeout 與時間紀錄（確保回傳 < 5 秒）。
 5. 改善除錯資訊（print more details）。
 6. 建立單元測試 test_classifier.py 並通過初步測試。
-    
+
+**2025/10/20**
+1.	新增 src/play_fetcher.py（Playwright / Chromium headless）做動態抓取，成功取得大體量 HTML（>1.3MB）。
+2.	在 inspect.py 串接 requests → Playwright fallback：fetch_html() 失敗時自動改用 fetch_with_playwright()。
+3.	inspect.py 新增/修正診斷欄位：meta.fetched_with（requests / playwright）、duration_ms、was_rewritten、rewritten_url。
+4.	Facebook 連結自動 改寫為 m.facebook.com（page / post / group），有效降低 login wall 影響並提升成功率。
+5.	classifier.py 補強 IG Reels 規則：instagram.com/reel/ → ig_post（避免誤判為 profile）；統一以 lowercase 比對。
+6.	parser.py 驗證 OG 解析流程，保留 <title> / meta[name="description"] 等 fallback（IG 未登入時 og:* 可能為 None）。
+7.	新增/整理測試腳本 scripts/test_play.py：先抓後 parse，列印 HTML 長度與 meta，並修正 sys.path 以便從專案根執行。
+8.	以真實連結驗證：NASA/UNICEF/WHO/Google/Microsoft 粉專、fb.watch 影片、公開社團、IG profile/post/reel；FB 全部成功回傳 og，IG 在未登入情境下 og:* 多為 None（預期）。
+9.	更新 requirements.txt（加入 playwright 等相依），並完成 Git 提交與推送（保留可重現環境）。
+10.	彙整 HackMD「成果發布模板」與「Parser × Fallback 詳解」章節（含決策流程、日誌範例、失敗模式與診斷欄位），作為日後迭代與交付依據。
+
 **（三）使用之程式方法**
 
 requests：HTTP 請求與 timeout 控制
@@ -125,4 +137,6 @@ HackMD
 > | 日期 (yyyymmdd) | 更新內容 |
 > | --- | --- |
 > | 20251018 | {更新github並初始化(Alex)} |
-> | 20251019 | {測試 fetch_html 模組與多種 Facebook 連結型態，確認短連結（如 fb.me、l.facebook.com）與正式網址之轉址行為。修正 import 錯誤 (fetcher_html → fetch_html)；新增時間紀錄與 request timeout 控制，確保回傳時間 <5 秒。整理截圖測試結果，準備撰寫連結分類邏輯（判斷 FB/IG/外部站）(Alex)。
+> | 20251019 | {測試 fetch_html 模組與多種 Facebook 連結型態，確認短連結（如 fb.me、l.facebook.com）與正式網址之轉址行為。修正 import 錯誤 (fetcher_html → fetch_html)；新增時間紀錄與 request timeout 控制，確保回傳時間 5 秒。整理截圖測試結果，準備撰寫連結分類邏輯（判斷 FB/IG/外部站）(Alex)。
+| 20251020 | {新增 Playwright 模組 (play_fetcher.py) 實現 requests→playwright 自動 fallback；於 inspect.py 加入 fetched_with、duration_ms、was_rewritten、rewritten_url 診斷欄位；成功以 m.facebook.com 抓取多組真實粉專（NASA、UNICEF、WHO、Google、Microsoft）；修正 classifier.py 以辨識 Instagram Reels；測試 fb.watch、group、IG profile/post/reel 共 12 組連結；更新 requirements.txt（新增 playwright），提交 Git 並撰寫 HackMD 詳解章節（Parser × Fallback 流程、日誌、診斷欄位）(Alex)
+} |
