@@ -27,8 +27,6 @@ def inspect_url(url: str) -> dict:
             )
             was_rewritten = (rewritten_url != url)
             
-        if "facebook.com" in url and "m.facebook.com" not in url:
-            url = url.replace("www.facebook.com", "m.facebook.com").replace("facebook.com", "m.facebook.com")
 
     html = fetch_html(rewritten_url)
     
@@ -45,7 +43,7 @@ def inspect_url(url: str) -> dict:
             "data": None,
             "meta": {
                 "duration_ms": int((time.time() - t0) * 1000),
-                "fetched_with": "requests",
+                "fetched_with": "requests_with",
                 "was_rewritten": was_rewritten,
                 "rewritten_url": rewritten_url if was_rewritten else None,
             },
@@ -69,7 +67,7 @@ def inspect_url(url: str) -> dict:
         "data": data,
         "meta": {
             "duration_ms": int((time.time() - t0) * 1000),
-            "fetched_with": "requests",
+            "fetched_with": "requests_with",
             "was_rewritten": was_rewritten,
             "rewritten_url": rewritten_url if was_rewritten else None,
         },
