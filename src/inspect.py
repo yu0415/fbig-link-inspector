@@ -11,6 +11,7 @@ def inspect_url(url: str) -> dict:
     - Returns a stable schema with meta diagnostics.
     """
     t0 = time.time()
+    fetched_with = "requests"
     type_tag = classify(url)
 
     # Normalize FB URLs to mobile version to avoid login wall
@@ -30,6 +31,12 @@ def inspect_url(url: str) -> dict:
             url = url.replace("www.facebook.com", "m.facebook.com").replace("facebook.com", "m.facebook.com")
 
     html = fetch_html(rewritten_url)
+    
+    if not html:
+        from .play_fetcher import fetch_with_playwright
+        html = fetch_with_playwright(rewritten_url)
+        if html:
+            fetched_with = "playwright"
 
     if not html:
         return {
