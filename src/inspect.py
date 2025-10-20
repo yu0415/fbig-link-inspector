@@ -43,7 +43,7 @@ def inspect_url(url: str) -> dict:
             "data": None,
             "meta": {
                 "duration_ms": int((time.time() - t0) * 1000),
-                "fetched_with": "requests_with",
+                "fetched_with": fetched_with,
                 "was_rewritten": was_rewritten,
                 "rewritten_url": rewritten_url if was_rewritten else None,
             },
@@ -67,7 +67,7 @@ def inspect_url(url: str) -> dict:
         "data": data,
         "meta": {
             "duration_ms": int((time.time() - t0) * 1000),
-            "fetched_with": "requests_with",
+            "fetched_with": fetched_with,
             "was_rewritten": was_rewritten,
             "rewritten_url": rewritten_url if was_rewritten else None,
         },
