@@ -3,7 +3,7 @@ import re
 from typing import Optional, Dict, Any
 from .utils import normalize_number
 
-# ---------- helpers ----------
+
 
 def _blank_basic(note: Optional[str] = None, source_hint: str = "text") -> Dict[str, Any]:
     return {
@@ -14,6 +14,7 @@ def _blank_basic(note: Optional[str] = None, source_hint: str = "text") -> Dict[
         "page_followers": None,
         "group_members": None,
         "owner_followers": None,
+        "owner_url": None,
         "source_hint": source_hint,
         "note": note,
     }
@@ -93,7 +94,7 @@ def parse_fb_page_basic(html: str) -> dict:
             
     source_hint = "text"
     try:
-        source_hint = source  # may be set to "meta" or "json" above
+        source_hint = source
     except NameError:
         pass
 
@@ -146,6 +147,7 @@ def parse_fb_post_basic(html: str) -> dict:
     """
     強化版：解析 FB 貼文頁（如 /share/r/... 或 /share/p/...）的讚數、分享數與所屬粉專追蹤數。
     目標欄位：basic.likes, basic.shares, basic.page_followers
+    同時嘗試推導貼文所屬粉專網址（owner_url），供上層二段抓取使用。
     """
     soup = BeautifulSoup(html or "", "html.parser")
     text = soup.get_text(" ", strip=True)
@@ -182,7 +184,7 @@ def parse_fb_post_basic(html: str) -> dict:
             s = sc.string or sc.get_text()
             if not s:
                 continue
-            # 嘗試尋找 like_count
+            
             if likes is None:
                 m = re.search(r'"like_count"\s*:\s*([0-9]+)', s)
                 if m:
@@ -197,8 +199,7 @@ def parse_fb_post_basic(html: str) -> dict:
                         shares = int(m.group(1))
                     except Exception:
                         pass
-            # --- Deep JSON patterns (e.g., __bbox / feedbackContext) ---
-            # 1) feedback / __bbox deep JSON with nested counts
+                    
             if likes is None:
                 m = re.search(r'"feedback"[\s\S]*?"reaction_count"\s*:\s*\{\s*"count"\s*:\s*([0-9]+)', s)
                 if not m:
@@ -220,7 +221,7 @@ def parse_fb_post_basic(html: str) -> dict:
                         shares = int(m.group(1))
                     except Exception:
                         pass
-            # like_count may appear as {"like_count":{"count":123}} or {"reaction_count":{"count":123}}
+                    
             if likes is None:
                 m = re.search(r'"like_count"\s*:\s*\{\s*"count"\s*:\s*([0-9]+)', s)
                 if not m:
@@ -230,7 +231,7 @@ def parse_fb_post_basic(html: str) -> dict:
                         likes = int(m.group(1))
                     except Exception:
                         pass
-            # share_count may appear as {"share_count":{"count":45}} or {"shares":{"count":45}}
+                    
             if shares is None:
                 m = re.search(r'"share_count"\s*:\s*\{\s*"count"\s*:\s*([0-9]+)', s)
                 if not m:
@@ -240,9 +241,9 @@ def parse_fb_post_basic(html: str) -> dict:
                         shares = int(m.group(1))
                     except Exception:
                         pass
-            # 嘗試尋找 page_followers
+                    
             if page_followers is None:
-                # 常見欄位
+                
                 m = re.search(r'"followers_count"\s*:\s*([0-9]+)', s)
                 if not m:
                     m = re.search(r'"page_fan_count"\s*:\s*([0-9]+)', s)
@@ -255,13 +256,13 @@ def parse_fb_post_basic(html: str) -> dict:
                         page_followers = int(m.group(1))
                     except Exception:
                         pass
-            # 若三者皆有就不用再 loop
+                    
             if likes is not None and shares is not None and page_followers is not None:
                 break
         if any([likes, shares, page_followers]):
             source_hint = "json"
 
-    # Fallback: aria-label text counts from visible buttons (localized)
+
     if likes is None or shares is None:
         try:
             nodes = soup.find_all(attrs={"aria-label": True})
@@ -278,10 +279,9 @@ def parse_fb_post_basic(html: str) -> dict:
         except Exception:
             pass
     if any([likes, shares]) and source_hint == "text":
-        # If we only found via aria-labels, treat as 'json' equivalent richness
+        
         source_hint = "json"
 
-    # Final-pass: scan whole HTML for more JSON patterns (robust against script splits)
     if likes is None:
         for pat in [
             r'"reaction_count"\s*:\s*\{\s*"count"\s*:\s*([0-9]+)',
@@ -329,14 +329,156 @@ def parse_fb_post_basic(html: str) -> dict:
                 except Exception:
                     pass
 
+    
+    owner_url = None
+
+    
+    try:
+        og = soup.find("meta", attrs={"property": "og:url"})
+        if og and og.get("content"):
+            ogu = og["content"]
+            m = re.search(r"https?://www\\.facebook\\.com/([^/?#]+)/?", ogu, flags=re.IGNORECASE)
+            if m:
+                slug = m.group(1)
+                if slug.lower() not in (
+                    "share", "login", "watch", "reel", "groups", "permalink",
+                    "photo.php", "friends", "story.php", "marketplace", "profile", "pages", "gaming"
+                ):
+                    owner_url = f"https://m.facebook.com/{slug}"
+    except Exception:
+        pass
+
+    
+    if owner_url is None:
+        for sc in soup.find_all("script"):
+            s = sc.string or sc.get_text() or ""
+            if '"permalink_url"' in s:
+                m = re.search(r'"permalink_url"\\s*:\\s*"(https:\\/\\/www\\.facebook\\.com\\/[^"]+)"', s)
+                if m:
+                    try:
+                        perma = m.group(1).replace("\\/", "/")
+                        m2 = re.search(r"https?://www\\.facebook\\.com/([^/?#]+)/?", perma, flags=re.IGNORECASE)
+                        if m2:
+                            slug = m2.group(1)
+                            if slug.lower() not in (
+                                "share", "login", "watch", "reel", "groups", "permalink",
+                                "photo.php", "friends", "story.php", "marketplace", "profile", "pages", "gaming"
+                            ):
+                                owner_url = f"https://m.facebook.com/{slug}"
+                                break
+                    except Exception:
+                        pass
+
+    
+    if owner_url is None:
+        try:
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                m = re.search(r"^/([^/?#]+)/?", href)
+                if m:
+                    slug = m.group(1)
+                    if slug and slug.lower() not in (
+                        "share", "login", "watch", "reel", "groups", "permalink",
+                        "photo.php", "friends", "story.php", "marketplace", "profile", "pages", "gaming"
+                    ):
+                        owner_url = f"https://m.facebook.com/{slug}"
+                        break
+        except Exception:
+            pass
+
+    
+    if owner_url is None:
+        try:
+            
+            m = re.search(r'https:\\/\\/www\\.facebook\\.com\\/([^"\\/?#]+)\\/?(?=["\\/\\?])', html)
+            if m:
+                slug = m.group(1)
+                if slug and slug.lower() not in (
+                    "share", "login", "watch", "reel", "groups", "permalink",
+                    "photo.php", "friends", "story.php", "marketplace", "profile", "pages", "gaming"
+                ):
+                    owner_url = f"https://m.facebook.com/{slug}"
+            if owner_url is None:
+                
+                for pat in [
+                    r'"entity_url"\\s*:\\s*"https:\\/\\/www\\.facebook\\.com\\/([^"\\/?#]+)\\/?',
+                    r'"actor"\\s*:\\s*\\{[\\s\\S]*?"url"\\s*:\\s*"https:\\/\\/www\\.facebook\\.com\\/([^"\\/?#]+)\\/?',
+                    r'"page_url"\\s*:\\s*"https:\\/\\/www\\.facebook\\.com\\/([^"\\/?#]+)\\/?',
+                ]:
+                    m = re.search(pat, html)
+                    if m:
+                        slug = m.group(1)
+                        if slug and slug.lower() not in (
+                            "share", "login", "watch", "reel", "groups", "permalink",
+                            "photo.php", "friends", "story.php", "marketplace", "profile", "pages", "gaming"
+                        ):
+                            owner_url = f"https://m.facebook.com/{slug}"
+                            break
+            if owner_url is None:
+                
+                for pat in [
+                    r'"pageID"\\s*:\\s*"([0-9]{4,})"',
+                    r'"actor_id"\\s*:\\s*"([0-9]{4,})"',
+                    r'"entity_id"\\s*:\\s*"([0-9]{4,})"',
+                    r'"owner"\\s*:\\s*\\{[\\s\\S]*?"id"\\s*:\\s*"([0-9]{4,})"',
+                ]:
+                    m = re.search(pat, html)
+                    if m:
+                        owner_url = f"https://m.facebook.com/profile.php?id={m.group(1)}"
+                        break
+        except Exception:
+            pass
+
+    
+    if owner_url is None:
+        try:
+            m = re.search(
+                r'"owner"\\s*:\\s*\\{[\\s\\S]*?"url"\\s*:\\s*"https:\\/\\/www\\.facebook\\.com\\/([^"\\\\/?#]+)',
+                html
+            )
+            if m:
+                slug = m.group(1)
+                if slug and slug.lower() not in (
+                    "share", "login", "watch", "reel", "groups", "permalink",
+                    "photo.php", "friends", "story.php", "marketplace", "profile", "pages", "gaming"
+                ):
+                    owner_url = f"https://m.facebook.com/{slug}"
+            if owner_url is None:
+                m = re.search(r'"owner"\\s*:\\s*\\{[\\s\\S]*?"id"\\s*:\\s*"([0-9]{4,})"', html)
+                if m:
+                    owner_url = f"https://m.facebook.com/profile.php?id={m.group(1)}"
+        except Exception:
+            pass
+
+    
+    if owner_url is None:
+        try:
+            m = re.search(
+                r'"actors"\\s*:\\s*\\[\\s*\\{[^}]*?"url"\\s*:\\s*"https:\\/\\/www\\.facebook\\.com\\/([^"\\\\/?#]+)',
+                html
+            )
+            if m:
+                slug = m.group(1)
+                if slug and slug.lower() not in (
+                    "share", "login", "watch", "reel", "groups", "permalink",
+                    "photo.php", "friends", "story.php", "marketplace", "profile", "pages", "gaming"
+                ):
+                    owner_url = f"https://m.facebook.com/{slug}"
+            if owner_url is None:
+                m = re.search(r'"actors"\\s*:\\s*\\[\\s*\\{[^}]*?"id"\\s*:\\s*"([0-9]{4,})"', html)
+                if m:
+                    owner_url = f"https://m.facebook.com/profile.php?id={m.group(1)}"
+        except Exception:
+            pass
+
     note = None if any([likes, shares, page_followers]) else "not_found"
     basic = _blank_basic(note=note, source_hint=source_hint)
     basic["likes"] = likes
     basic["shares"] = shares
     basic["page_followers"] = page_followers
+    basic["owner_url"] = owner_url
     return basic
 
-# ---------- FB: Group ----------
 
 def parse_fb_group_basic(html: str) -> dict:
     """
@@ -358,7 +500,7 @@ def parse_fb_group_basic(html: str) -> dict:
     basic["members"] = members
     return basic
 
-# ---------- FB: Group Post ----------
+
 
 def parse_fb_group_post_basic(html: str) -> dict:
     """
@@ -397,7 +539,7 @@ def parse_fb_group_post_basic(html: str) -> dict:
     basic["group_members"] = group_members
     return basic
 
-# ---------- IG: Profile ----------
+
 
 def parse_ig_profile_basic(html: str) -> dict:
     """
