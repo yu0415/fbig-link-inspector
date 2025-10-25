@@ -11,7 +11,7 @@ import time
 from typing import Dict, Any, Optional
 
 
-# --- followers extract util ---
+
 def _to_int_with_units(s: str) -> Optional[int]:
     """
     將含有單位的數字字串轉為整數：
@@ -74,10 +74,10 @@ def _extract_followers_from_html(html: str) -> Optional[int]:
             except Exception:
                 pass
     for pat in [
-        # zh / zh-TW variants
+        
         r'([0-9][0-9,\.]{0,12}\s*(?:K|M|B|萬|億)?)\s*(?:位)?\s*(?:追蹤者|粉絲|關注者|訂閱者)',
         r'([0-9][0-9,\.]{0,12}\s*(?:K|M|B|萬|億)?)\s*(?:人)?\s*(?:追蹤|關注|訂閱)',
-        # en variants
+        
         r'([0-9][0-9,\.]{0,12}\s*(?:K|M|B|萬|億)?)\s*followers',
         r'([0-9][0-9,\.]{0,12}\s*(?:K|M|B|萬|億)?)\s*subscribers',
     ]:
@@ -128,7 +128,7 @@ def _extract_final_permalink_from_html(html: str) -> Optional[str]:
     """
     import re
     try:
-        # 小工具：標準化輸出為 m.facebook.com
+        
         def _to_m(u: str) -> str:
             if not u:
                 return u
@@ -146,7 +146,7 @@ def _extract_final_permalink_from_html(html: str) -> Optional[str]:
                 u = "https://m.facebook.com" + u
             return u
 
-        # 1) GraphQL/Relay 常見鍵（www / m）
+        
         for pat in [
             r'"permalink_url"\s*:\s*"https:\\/\\/(?:www|m)\\.facebook\\.com\\/[^"\\]+?"',
             r'"permalinkURL"\s*:\s*"https:\\/\\/(?:www|m)\\.facebook\\.com\\/[^"\\]+?"',
@@ -158,7 +158,7 @@ def _extract_final_permalink_from_html(html: str) -> Optional[str]:
                 url = bytes(url, "utf-8").decode("unicode_escape")
                 return _to_m(url)
 
-        # 2) JSON 片段中的常見 permalink 形態（www / m）
+        
         for pat in [
             r'https:\\/\\/www\\.facebook\\.com\\/[^"\\]+\\/posts\\/[0-9]+',
             r'https:\\/\\/m\\.facebook\\.com\\/[^"\\]+\\/posts\\/[0-9]+',
@@ -180,7 +180,7 @@ def _extract_final_permalink_from_html(html: str) -> Optional[str]:
                 url = bytes(m.group(0), "utf-8").decode("unicode_escape")
                 return _to_m(url)
 
-        # 2.5) <iframe src="https://www.facebook.com/plugins/post.php?href=..."> 或 video.php 內含最終 href
+        
         m = re.search(
             r'<iframe[^>]+src=["\'](https?://(?:www|m)\\.facebook\\.com/plugins/(?:post|video)\\.php\?[^"\']+)["\']',
             html, flags=re.I | re.S
@@ -196,7 +196,7 @@ def _extract_final_permalink_from_html(html: str) -> Optional[str]:
             except Exception:
                 pass
 
-        # 3) <link rel="canonical" ...>（www / m）
+        
         m = re.search(
             r'<link[^>]+rel=["\\\']canonical["\\\'][^>]+href=["\\\'](https://(?:www|m)\.facebook\.com/[^"\\\']+)["\\\']',
             html
@@ -204,7 +204,7 @@ def _extract_final_permalink_from_html(html: str) -> Optional[str]:
         if m:
             return _to_m(m.group(1))
 
-        # 4) 頁內可見連結（未轉義形式）
+        
         for pat in [
             r'href=["\\\'](/story\.php\?[^"\\\']+)["\\\']',
             r'href=["\\\'](/permalink\.php\?[^"\\\']+)["\\\']',
@@ -237,7 +237,7 @@ def _extract_owner_id_from_html(html: str) -> Optional[str]:
             r'"profile_id"\s*:\s*"(\d+)"',
             r'data-owner-id=["\\\'](\d+)["\\\']',
             r'data-gt=["\\\'][^"\\\']*"profile_owner":"(\d+)"',
-            # --- additional patterns ---
+            
             r'"pageID"\s*:\s*(\d+)',
             r'"ownerID"\s*:\s*(\d+)',
             r'"page_id"\s*:\s*"(\d+)"',
@@ -251,7 +251,7 @@ def _extract_owner_id_from_html(html: str) -> Optional[str]:
         pass
     return None
 
-# --- New helper: extract owner slug from HTML ---
+
 def _extract_owner_slug_from_role_link(html: str) -> Optional[str]:
     """
     從新版 Reels/貼文頁中，專門抓取 <a role="link" ...> 內指向粉專頁名的 anchor，
@@ -274,7 +274,7 @@ def _extract_owner_slug_from_role_link(html: str) -> Optional[str]:
             return False
         return nxt in allowed_next
 
-    # 1) 絕對連結：<a role="link" href="https://(www|m).facebook.com/<slug>(/next)?...">
+    
     m = re.search(
         r'<a[^>]+role=["\']link["\'][^>]+href=["\']https?://(?:www|m)\\.facebook\\.com/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\\?[^"\']*)?["\']',
         html,
@@ -283,7 +283,7 @@ def _extract_owner_slug_from_role_link(html: str) -> Optional[str]:
     if m and good_pair(m.group(1), m.group(2)):
         return m.group(1)
 
-    # 2) 相對連結：<a role="link" href="/<slug>(/next)?...">
+    
     m = re.search(
         r'<a[^>]+role=["\']link["\'][^>]+href=["\']/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\\?[^"\']*)?["\']',
         html,
@@ -322,7 +322,7 @@ def _extract_owner_slug_from_html(html: str) -> Optional[str]:
             return False
         return nxt in allowed_next
 
-    # A) JSON-escaped absolute，捕捉第一段與下一段
+    
     m = re.search(
         r'https:\\/\\/(?:www|m)\\.facebook\\.com\\/([A-Za-z0-9._-]+)(?:\\/([A-Za-z0-9._-]+))?(?:\\?[^"\\\\]*)?',
         html
@@ -330,7 +330,7 @@ def _extract_owner_slug_from_html(html: str) -> Optional[str]:
     if m and good_pair(m.group(1), m.group(2)):
         return m.group(1)
 
-    # B) Normal absolute anchor（單/雙引號、跨行）
+    
     m = re.search(
         r'<a[^>]+href=["\']https?://(?:www|m)\.facebook\.com/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
         html, flags=re.I | re.S
@@ -338,7 +338,7 @@ def _extract_owner_slug_from_html(html: str) -> Optional[str]:
     if m and good_pair(m.group(1), m.group(2)):
         return m.group(1)
 
-    # C) Relative anchor
+    
     m = re.search(r'href=["\']/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']', html)
     if m and good_pair(m.group(1), m.group(2)):
         return m.group(1)
@@ -346,7 +346,7 @@ def _extract_owner_slug_from_html(html: str) -> Optional[str]:
     return None
 
 
-# 新增：直接從 anchor 絕對/相對連結抽 slug
+
 def _extract_owner_from_anchors(html: str) -> Optional[str]:
     """
     從 HTML 的 <a href=...> 直接抽出粉專 slug（優先 www/m 絕對連結，再試相對連結）。
@@ -369,7 +369,7 @@ def _extract_owner_from_anchors(html: str) -> Optional[str]:
             return False
         return nxt in allowed_next
 
-    # 1) 絕對連結（優先）：掃描全部 <a href="https://(www|m).facebook.com/...">
+    
     for m in re.finditer(
         r'<a[^>]+href=["\']https?://(?:www|m)\.facebook\.com/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
         html, flags=re.I | re.S
@@ -377,7 +377,7 @@ def _extract_owner_from_anchors(html: str) -> Optional[str]:
         if good_pair(m.group(1), m.group(2)):
             return m.group(1)
 
-    # 2) 相對連結：掃描全部 <a href="/<slug>[/(...)]?">
+    
     for m in re.finditer(
         r'<a[^>]+href=["\']/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
         html, flags=re.I | re.S
@@ -387,7 +387,7 @@ def _extract_owner_from_anchors(html: str) -> Optional[str]:
 
     return None
 
-# 新增：從 m.facebook DOM 抽取擁有者顯示名稱（例如 h2/anchor 內的文字：ETtoday新聞雲）
+
 def _extract_owner_display_name(html: str) -> Optional[str]:
     """
     從 m.facebook DOM 抽取擁有者顯示名稱（例如 h2/anchor 內的文字：ETtoday新聞雲）。
@@ -397,7 +397,7 @@ def _extract_owner_display_name(html: str) -> Optional[str]:
         return None
     try:
         import re
-        # 優先：aria-label 包含「查看擁有者個人檔案」或「查看粉絲專頁」或英文對應的 anchor 之可見文字
+        
         m = re.search(
             r'<a[^>]+aria-label=["\'].*?(查看擁有者個人檔案|查看粉絲專頁|View owner profile|View Page).*?["\'][^>]*>(.*?)</a>',
             html, flags=re.I | re.S
@@ -412,14 +412,14 @@ def _extract_owner_display_name(html: str) -> Optional[str]:
             if name:
                 return name
 
-        # 次要：h2 裡的第一個 anchor 文字（常見於粉專名稱區塊）
+        
         m = re.search(r'<h2[^>]*>.*?<a[^>]*>(.*?)</a>.*?</h2>', html, flags=re.I | re.S)
         if m:
             name = _strip(m.group(1))
             if name:
                 return name
 
-        # 最後：role="link" 的 anchor 文字
+        
         m = re.search(r'<a[^>]+role=["\']link["\'][^>]*>(.*?)</a>', html, flags=re.I | re.S)
         if m:
             name = _strip(m.group(1))
@@ -429,7 +429,7 @@ def _extract_owner_display_name(html: str) -> Optional[str]:
     except Exception:
         return None
 
-# --- New helper: extract page slug by label (粉絲專頁 / Page) ---
+
 def _extract_page_slug_by_label(html: str) -> Optional[str]:
     """
     從帶有「粉絲專頁 / Page」語意的 aria-label 或可見文字的 <a> 取得粉專 slug。
@@ -452,7 +452,7 @@ def _extract_page_slug_by_label(html: str) -> Optional[str]:
                 return False
             return nxt in allowed_next
 
-        # 1) aria-label 指向粉專 / Page 的 anchor（絕對連結）
+        
         m = re.search(
             r'<a[^>]+aria-label=["\'][^"\']*(?:粉絲專頁|Page)[^"\']*["\'][^>]+href=["\']https?://(?:www|m)\.facebook\.com/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
             html, flags=re.I | re.S
@@ -460,7 +460,7 @@ def _extract_page_slug_by_label(html: str) -> Optional[str]:
         if m and good_pair(m.group(1), m.group(2) or ""):
             return m.group(1)
 
-        # 2) aria-label 指向粉專 / Page 的 anchor（相對連結）
+        
         m = re.search(
             r'<a[^>]+aria-label=["\'][^"\']*(?:粉絲專頁|Page)[^"\']*["\'][^>]+href=["\']/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
             html, flags=re.I | re.S
@@ -468,7 +468,7 @@ def _extract_page_slug_by_label(html: str) -> Optional[str]:
         if m and good_pair(m.group(1), m.group(2) or ""):
             return m.group(1)
 
-        # 3) 可見文字本身含有 粉絲專頁 / Page 的 anchor（較寬鬆）
+        
         m = re.search(
             r'<a[^>]+href=["\']https?://(?:www|m)\.facebook\.com/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\'][^>]*>[^<]*(?:粉絲專頁|Page)[^<]*</a>',
             html, flags=re.I | re.S
@@ -476,7 +476,7 @@ def _extract_page_slug_by_label(html: str) -> Optional[str]:
         if m and good_pair(m.group(1), m.group(2) or ""):
             return m.group(1)
 
-        # 4) 相對連結 + 可見文字
+        
         m = re.search(
             r'<a[^>]+href=["\']/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\'][^>]*>[^<]*(?:粉絲專頁|Page)[^<]*</a>',
             html, flags=re.I | re.S
@@ -488,7 +488,7 @@ def _extract_page_slug_by_label(html: str) -> Optional[str]:
         return None
     return None
 
-# --- Helper: try upgrading profile.php?id=... to canonical page slug ---
+
 def _upgrade_profile_to_page_slug(owner_url: Optional[str], storage_state: Optional[str] = None) -> Optional[str]:
     """
     若 owner_url 是 profile.php?id=...，嘗試開啟該頁並從頁內抽取可用的粉專 slug，
@@ -500,7 +500,7 @@ def _upgrade_profile_to_page_slug(owner_url: Optional[str], storage_state: Optio
     if not owner_url or "profile.php" not in owner_url:
         return None
     try:
-        # 先抓頁面
+        
         html_owner = None
         if storage_state:
             from .play_fetcher import fetch_with_playwright as _play_fetch
@@ -511,12 +511,12 @@ def _upgrade_profile_to_page_slug(owner_url: Optional[str], storage_state: Optio
         if not html_owner:
             return None
 
-        # 1) 通用 slug 抽取
+        
         slug = _extract_owner_slug_from_html(html_owner)
         if slug:
             return f"https://m.facebook.com/{slug}"
 
-        # 2) 備援掃描：絕對/相對錨點，並過濾非 owner 路徑
+        
         import re
         bad_first = {
             "share","reel","watch","photo.php","story.php","permalink.php","marketplace","gaming","friends","groups",
@@ -587,7 +587,7 @@ def inspect_url(url: str) -> dict:
     fetched_with = "requests"
     type_tag = classify(url)
 
-    # Normalize FB URLs to mobile version to avoid login wall
+    
     was_rewritten = False
     rewritten_url = url
     if type_tag in ("fb_page", "fb_post", "fb_group"):
@@ -654,12 +654,12 @@ def inspect_url(url: str) -> dict:
     except Exception as e:
         data["basic"] = {"error": str(e)}
 
-    # --- Generic owner backfill (non-share/r too) ---
+    
     try:
-        # A) Facebook post/group_post：若沒有 owner_url 或缺 page_followers/group_members，直接從 html 推回作者並補數字
+        
         if type_tag in ("fb_post", "fb_group_post"):
             basic = data.get("basic") or {}
-            # 先嘗試從目前 html 推 owner_url（slug / ownerProfileUrl / profile.php?id / reels_tab）
+            
             if not basic.get("owner_url"):
                 import re as _reG
                 slugG = None
@@ -674,7 +674,7 @@ def inspect_url(url: str) -> dict:
                     m = _reG.search(r'"ownerProfileUrl"\s*:\s*"https:\\/\\/m\\.facebook\\.com\\/([^"\\]+)"', html)
                     if m:
                         slugG = m.group(1).split("\\/")[0]
-                # 3.5) 支援絕對連結：href="https://www.facebook.com/<slug>?..." 或 m.facebook.com，查詢字串可選
+                
                 if not slugG:
                     m = _reG.search(
                         r'<a[^>]+href=["\']https?://(?:www|m)\.facebook\.com/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
@@ -700,34 +700,34 @@ def inspect_url(url: str) -> dict:
                         _slug2 = m.group(1)
                         if _slug2.lower() not in ("share", "reel", "watch", "photo.php", "story.php", "permalink.php", "marketplace", "gaming", "friends"):
                             data["basic"]["owner_url"] = f"https://m.facebook.com/{_slug2}"
-                # 3.6) 最後再試一次：通用 slug 抽取（含 JSON 轉義 / 絕對 / 相對）
+                
                 if not data["basic"].get("owner_url") and not slugG:
                     _slug_auto = _extract_owner_slug_from_html(html)
                     if _slug_auto:
                         data["basic"]["owner_url"] = f"https://m.facebook.com/{_slug_auto}"
-            # 追加：從 aria-label="查看擁有者個人檔案" 的 <a> 直接推回 owner（常見於 Reels 版面）
+            
             if not data["basic"].get("owner_url"):
                 m = _reG.search(r'aria-label="查看擁有者個人檔案"[^>]+href="(/profile\.php\?[^"\\\']+)"', html)
                 if not m:
-                    # 英文備援（少見，但一併支援）
+                    
                     m = _reG.search(r'aria-label="View owner profile"[^>]+href="(/profile\.php\?[^"\\\']+)"', html)
                 if m:
                     href = m.group(1).replace("&amp;", "&")
                     from urllib.parse import urljoin
                     owner_url = urljoin("https://m.facebook.com", href.split("&")[0])
                     data["basic"]["owner_url"] = owner_url
-            # 3.6b) 新增：專抓 <a role="link" ...> 的頁名 anchor（Reels/新版 DOM）
+            
             if not data["basic"].get("owner_url"):
                 _slug_role = _extract_owner_slug_from_role_link(html)
                 if _slug_role:
                     data["basic"]["owner_url"] = f"https://m.facebook.com/{_slug_role}"
-            # 3.7) 再試一次：從 <a href="https://www.facebook.com/<slug>"> 直接抽
+            
             if not data["basic"].get("owner_url") or "profile.php" in (data["basic"].get("owner_url") or ""):
                 _slug_from_a = _extract_owner_from_anchors(html)
                 if _slug_from_a:
                     data["basic"]["owner_url"] = f"https://m.facebook.com/{_slug_from_a}"
 
-            # If owner_url is still a profile.php (common on reels), try upgrading it to a page slug
+            
             try:
                 cur_owner = data["basic"].get("owner_url")
                 if cur_owner and "profile.php" in cur_owner and "/groups/" not in cur_owner:
@@ -736,14 +736,14 @@ def inspect_url(url: str) -> dict:
                         data["basic"]["owner_url"] = upgraded
             except Exception:
                 pass
-            # 若已存在的 owner_url 指向通用/錯誤區（friends/marketplace/gaming 等）或為隨機 profile，
-            # 而且 aria-label 有抓到另一個候選 owner，則覆蓋為候選 owner。
+            
+            
             if data["basic"].get("owner_url"):
                 _owner_now = data["basic"]["owner_url"]
-                # 標記不可信來源（容易被誤抓）
+                
                 _bad_roots = ("/friends", "/marketplace", "/gaming")
                 _looks_bad = any(br in _owner_now for br in _bad_roots)
-                # 如果頁面還有另一個 aria-label owner，拿來覆蓋
+                
                 m2 = _reG.search(r'aria-label="查看擁有者個人檔案"[^>]+href="(/profile\.php\?[^"\\\']+)"', html) or \
                      _reG.search(r'aria-label="View owner profile"[^>]+href="(/profile\.php\?[^"\\\']+)"', html)
                 if (_looks_bad or _owner_now.endswith("id=0") or _owner_now.endswith("id=1")) and m2:
@@ -751,19 +751,19 @@ def inspect_url(url: str) -> dict:
                     from urllib.parse import urljoin
                     data["basic"]["owner_url"] = urljoin("https://m.facebook.com", href2.split("&")[0])
 
-            # 若 HTML 有顯示名稱，先補上 owner_name（即便 owner_url 尚未升級）
+            
             if not data.get("basic", {}).get("owner_name"):
                 dn = _extract_owner_display_name(html or "")
                 if dn:
                     data.setdefault("basic", {})["owner_name"] = dn
 
-            # 若目前 owner_url 指向 profile.php（常見誤抓個人/錯頁），而頁面存在絕對的粉專連結
-            # 例如：href="https://www.facebook.com/ETtoday?__tn__=-]C"，則優先改用 slug 版本
+            
+            
             try:
                 import re as _reABS
                 cur_owner = data["basic"].get("owner_url")
                 need_fix = bool(cur_owner and "profile.php" in cur_owner and "/groups/" not in cur_owner)
-                # 或者 followers 尚未取得也可以嘗試修正
+                
                 if not need_fix:
                     need_fix = (data["basic"].get("page_followers") is None)
                 if need_fix:
@@ -780,9 +780,9 @@ def inspect_url(url: str) -> dict:
                 pass
 
             owner_for_follow = data.get("basic", {}).get("owner_url")
-            # 若已升級 owner_url，補 owner_name
+            
             if not data.get("basic", {}).get("owner_name"):
-                # 升級後再嘗試從新版頁面取名稱
+                
                 try:
                     html_owner2 = fetch_html(owner_for_follow)
                 except Exception:
@@ -791,14 +791,14 @@ def inspect_url(url: str) -> dict:
                 if dn2:
                     data.setdefault("basic", {})["owner_name"] = dn2
             if owner_for_follow and (data["basic"].get("page_followers") is None and "/groups/" not in owner_for_follow):
-                # 粉專/個人：補 followers
+                
                 html_owner = None
                 if storage_state:
                     from .play_fetcher import fetch_with_playwright as _play_fetch
                     html_owner = _play_fetch(owner_for_follow, storage_state=storage_state)
                 if not html_owner:
                     html_owner = fetch_html(owner_for_follow)
-                # If owner is a profile.php page, try to upgrade it to a real page slug found on that page
+                
                 try:
                     if "profile.php" in owner_for_follow and "/groups/" not in owner_for_follow and html_owner:
                         import re as _refix
@@ -812,7 +812,7 @@ def inspect_url(url: str) -> dict:
                             bad = {"share","reel","watch","photo.php","story.php","permalink.php","marketplace","gaming","friends","groups",
                                    "profile.php","data","privacy_sandbox","help","settings","policy","login","pages"}
                             if cand.lower() not in bad:
-                                # upgrade to the canonical page slug and refetch that page
+                                
                                 owner_for_follow = f"https://m.facebook.com/{cand}"
                                 data.setdefault("basic", {})["owner_url"] = owner_for_follow
                                 html_owner = None
@@ -832,7 +832,7 @@ def inspect_url(url: str) -> dict:
                         if isinstance(n, int):
                             data["basic"]["page_followers"] = n
                     if data["basic"].get("page_followers") is None:
-                        # Extra fallback: grab visible counters like "有 12,345 位追蹤者" or similar header counters
+                        
                         n_vis = _extract_followers_from_html(html_owner)
                         if isinstance(n_vis, int):
                             data["basic"]["page_followers"] = n_vis
@@ -865,7 +865,7 @@ def inspect_url(url: str) -> dict:
                                 data["basic"]["page_followers"] = n2
                                 break
             elif owner_for_follow and "/groups/" in owner_for_follow and data["basic"].get("group_members") is None:
-                # 社團：補 members
+                
                 html_owner = None
                 if storage_state:
                     from .play_fetcher import fetch_with_playwright as _play_fetch
@@ -877,7 +877,7 @@ def inspect_url(url: str) -> dict:
                     if grp_basic.get("members") is not None:
                         data["basic"]["group_members"] = grp_basic["members"]
 
-        # B) Instagram post：若缺 owner_followers，從 html 找作者帳號再抓 profile
+        
         if type_tag == "ig_post":
             basic = data.get("basic") or {}
             if basic.get("owner_followers") is None:
@@ -909,7 +909,7 @@ def inspect_url(url: str) -> dict:
     except Exception:
         pass
 
-    # --- share/r|share/p 補強：若 basic.owner_url 尚未取得，追最終 permalink 再解析一次 ---
+    
     try:
         is_fb_share = "facebook.com/share/" in (rewritten_url or url)
         if type_tag in ("fb_post", "fb_group_post") and is_fb_share:
@@ -917,26 +917,26 @@ def inspect_url(url: str) -> dict:
             owner_url = basic.get("owner_url")
             if (not owner_url) or (basic.get("page_followers") is None):
                 storage_state = os.getenv("FBIG_STORAGE_STATE") or None
-                # 1) 先用 Playwright 嘗試轉址；失敗再用 requests
+                
                 final_u = (
                     _resolve_final_url_playwright(rewritten_url or url, storage_state=storage_state)
                     or _resolve_final_url_requests(rewritten_url or url)
                 )
-                # 仍未取得 → 嘗試直接從目前 HTML 解析最終 permalink
+                
                 if (not final_u) or ("facebook.com/share/" in final_u):
-                    # 盡可能使用剛抓到的 html 來源來抽 permalink
+                    
                     html_source = html if isinstance(html, str) else ""
                     extracted = _extract_final_permalink_from_html(html_source)
                     if extracted:
                         final_u = extracted
 
-                # 若 final_u 仍缺，嘗試直接抽 owner 數字 ID 組成 owner_url
+                
                 if (not final_u) and (not owner_url):
                     owner_id = _extract_owner_id_from_html(html_source)
                     if owner_id:
                         derived_owner = f"https://m.facebook.com/profile.php?id={owner_id}"
                         data.setdefault("basic", {})["owner_url"] = derived_owner
-                        # 直接補 owner followers/members
+                        
                         html_owner = None
                         if storage_state:
                             from .play_fetcher import fetch_with_playwright as _play_fetch
@@ -949,33 +949,33 @@ def inspect_url(url: str) -> dict:
                                 data["basic"]["page_followers"] = page_basic["followers"]
 
                 if final_u and "facebook.com/share/" not in final_u:
-                    # 改成 m.facebook 版本以提升未登入可視性
+                    
                     final_u = final_u.replace("https://www.facebook.com", "https://m.facebook.com")
 
-                    # 2a) 嘗試從最終 permalink 直接推回 owner（slug 或數字 id）
+                    
                     import re as _re
                     derived_owner = None
                     try:
-                        # /<slug>/posts/<id>
+                        
                         m = _re.search(r"https://m\.facebook\.com/([A-Za-z0-9._-]+)/posts/\d+", final_u)
                         if m:
                             derived_owner = f"https://m.facebook.com/{m.group(1)}"
-                        # /<slug>/videos/<id>
+                        
                         if not derived_owner:
                             m = _re.search(r"https://m\.facebook\.com/([A-Za-z0-9._-]+)/videos/\d+", final_u)
                             if m:
                                 derived_owner = f"https://m.facebook.com/{m.group(1)}"
-                        # story.php?id=<digits>
+                        
                         if not derived_owner:
                             m = _re.search(r"https://m\.facebook\.com/story\.php\?[^#]*\bid=(\d+)", final_u)
                             if m:
                                 derived_owner = f"https://m.facebook.com/profile.php?id={m.group(1)}"
-                        # permalink.php?story_fbid=...&id=<digits>
+                        
                         if not derived_owner:
                             m = _re.search(r"https://m\.facebook\.com/permalink\.php\?[^#]*\bid=(\d+)", final_u)
                             if m:
                                 derived_owner = f"https://m.facebook.com/profile.php?id={m.group(1)}"
-                        # groups/<slug>/posts/<id> → 這屬於社團；若遇到，先填社團 owner
+                        
                         if not derived_owner:
                             m = _re.search(r"https://m\.facebook\.com/groups/([A-Za-z0-9._-]+)/posts/\d+", final_u)
                             if m:
@@ -983,15 +983,15 @@ def inspect_url(url: str) -> dict:
                     except Exception:
                         pass
 
-                    # 若成功推得 owner，直接寫入並嘗試補粉專追蹤數/社團成員數
+                    
                     if derived_owner:
                         data.setdefault("basic", {})["owner_url"] = derived_owner
-                        # 也盡量補上顯示名稱
+                        
                         if not data.get("basic", {}).get("owner_name"):
                             dn = _extract_owner_display_name(html or "")
                             if dn:
                                 data.setdefault("basic", {})["owner_name"] = dn
-                        # 將 profile.php 形式的 owner_url 嘗試升級成 slug
+                        
                         try:
                             curr = data.get("basic", {}).get("owner_url")
                             upgraded = _upgrade_profile_to_page_slug(curr, storage_state)
@@ -999,7 +999,7 @@ def inspect_url(url: str) -> dict:
                                 data["basic"]["owner_url"] = upgraded
                         except Exception:
                             pass
-                        # 針對粉專/個人頁補 followers；社團則補 members
+                        
                         html_owner = None
                         if storage_state:
                             from .play_fetcher import fetch_with_playwright as _play_fetch
@@ -1012,19 +1012,19 @@ def inspect_url(url: str) -> dict:
                                 if grp_basic.get("members") is not None:
                                     data["basic"]["group_members"] = grp_basic["members"]
                                     if "基礎資訊" in data and "基礎資訊" in locals():
-                                        pass  # 中文欄位會在下方統一重建
+                                        pass
                             else:
                                         page_basic = parse_fb_page_basic(html_owner)
                                         if page_basic.get("followers") is not None:
                                             data["basic"]["page_followers"] = page_basic["followers"]
 
-                                        # Fallback 1：HTML 直接抽（支援 JSON 鍵 + 單位）
+                                        
                                         if data["basic"].get("page_followers") is None:
                                             n = _extract_followers_from_html(html_owner)
                                             if isinstance(n, int):
                                                 data["basic"]["page_followers"] = n
 
-                                        # Fallback 2：換 owner 細節頁再抓一次
+                                        
                                         if data["basic"].get("page_followers") is None:
                                             variants = []
                                             base = derived_owner.rstrip("/")
@@ -1059,7 +1059,7 @@ def inspect_url(url: str) -> dict:
 
                     data["final_permalink"] = final_u
 
-                    # 2) 抓最終 URL 的 HTML（登入優先）
+                    
                     html2 = None
                     if storage_state:
                         from .play_fetcher import fetch_with_playwright as _play_fetch
@@ -1067,37 +1067,37 @@ def inspect_url(url: str) -> dict:
                     if not html2:
                         html2 = fetch_html(final_u)
                     if html2:
-                        # 3) 再跑一次 post 解析，期待拿到 owner_url
+                        
                         try:
                             basic2 = parse_fb_post_basic(html2)
                             if basic2.get("owner_url"):
                                 data["basic"]["owner_url"] = basic2["owner_url"]
 
-                            # Fallback A: 若 basic2 沒給 owner_url，嘗試從 html2 直接抽 owner 數字 ID
+                            
                             if not data["basic"].get("owner_url"):
                                 owner_id2 = _extract_owner_id_from_html(html2)
                                 if owner_id2:
                                     data["basic"]["owner_url"] = f"https://m.facebook.com/profile.php?id={owner_id2}"
 
-                            # Fallback B: Reel/Photo/Watch 版面：從 slug 型連結推回 owner
+                            
                             if not data["basic"].get("owner_url"):
                                 import re as _re2
                                 slug = None
-                                # 1) /<slug>/reels/...
+                                
                                 m = _re2.search(r'href="/([A-Za-z0-9._-]+)/reels/', html2)
                                 if m:
                                     slug = m.group(1)
-                                # 2) /<slug>?... 常見於作者頭像/名稱連結
+                                
                                 if not slug:
                                     m = _re2.search(r'href="/([A-Za-z0-9._-]+)\?[^"]*ref=content_permalink', html2)
                                     if m:
                                         slug = m.group(1)
-                                # 3) JSON 內的 ownerProfileUrl
+                                
                                 if not slug:
                                     m = _re2.search(r'"ownerProfileUrl"\s*:\s*"https:\\/\\/m\\.facebook\\.com\\/([^"\\]+)"', html2)
                                     if m:
                                         slug = m.group(1).split("\\/")[0]
-                                # 3.5) 支援絕對連結：href="https://www.facebook.com/<slug>?..." 或 m.facebook.com，查詢字串可選
+                                
                                 if not data["basic"].get("owner_url") and not slug:
                                     m = _re2.search(
                                         r'<a[^>]+href=["\']https?://(?:www|m)\.facebook\.com/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
@@ -1111,14 +1111,14 @@ def inspect_url(url: str) -> dict:
                                         allowed_next = {"","reels","posts","videos","photos","about","pg","timeline"}
                                         if cand.lower() not in bad and nxt in allowed_next:
                                             slug = cand
-                                # 3.6) 再加一層通用 slug 抽取（含 JSON 轉義 / 絕對 / 相對）
+                                
                                 if not slug and not data["basic"].get("owner_url"):
                                     _slug_auto2 = _extract_owner_slug_from_html(html2)
                                     if _slug_auto2:
                                         slug = _slug_auto2
                                 if slug and slug.lower() not in ("share", "reel", "watch", "photo.php", "story.php", "permalink.php", "marketplace", "gaming", "friends"):
                                     data["basic"]["owner_url"] = f"https://m.facebook.com/{slug}"
-                            # 追加：從 aria-label="查看擁有者個人檔案" 的 <a> 直接推回 owner（share/r → 最終頁面）
+                            
                             if not data["basic"].get("owner_url"):
                                 m = _re2.search(r'aria-label="查看擁有者個人檔案"[^>]+href="(/profile\.php\?[^"\\\']+)"', html2)
                                 if not m:
@@ -1129,8 +1129,8 @@ def inspect_url(url: str) -> dict:
                                     owner_url = urljoin("https://m.facebook.com", href.split("&")[0])
                                     data["basic"]["owner_url"] = owner_url
 
-                            # 覆蓋策略：若目前 owner_url 仍為 None 或者 followers 還是抓不到，
-                            # 而 html2 的 aria-label 提供了更可信的 profile.php?id=XXXX，則用它覆蓋。
+                            
+                            
                             need_override = (data["basic"].get("page_followers") is None)
                             if need_override:
                                 m_override = _re2.search(r'aria-label="查看擁有者個人檔案"[^>]+href="(/profile\.php\?[^"\\\']+)"', html2) or \
@@ -1140,13 +1140,13 @@ def inspect_url(url: str) -> dict:
                                     from urllib.parse import urljoin
                                     owner_candidate = urljoin("https://m.facebook.com", href_ov.split("&")[0])
                                     cur = data["basic"].get("owner_url")
-                                    # 只有在目前 owner 不可信或缺 followers 時才覆蓋
+                                    
                                     _bad_roots = ("/friends", "/marketplace", "/gaming")
                                     if (cur is None) or any(br in (cur or "") for br in _bad_roots):
                                         data["basic"]["owner_url"] = owner_candidate
 
-                            # 若 owner_url 目前仍為 profile.php 或 followers 尚未取得，
-                            # 嘗試以 html2 中的絕對連結（https://www.facebook.com/<slug>?... 或 m.facebook.com，查詢字串可選）矯正
+                            
+                            
                             try:
                                 import re as _reABS2
                                 cur_owner2 = data["basic"].get("owner_url")
@@ -1162,14 +1162,14 @@ def inspect_url(url: str) -> dict:
                             except Exception:
                                 pass
 
-                            # 額外備援：再掃一次絕對/相對錨點，只要是 /<slug> 或 https://(www|m).facebook.com/<slug> 就採用，
-                            # 但排除常見內部路徑，並忽略指向貼文/reels 等的第二段。
+                            
+                            
                             if not data["basic"].get("owner_url"):
                                 import re as _reANY
                                 bad_first = {"share","reel","watch","photo.php","story.php","permalink.php","marketplace","gaming","friends","groups",
                                             "profile.php","data","privacy_sandbox","help","settings","policy","login","pages"}
                                 allowed_next = {"","reels","posts","videos","photos","about","pg","timeline"}
-                                # 1) 絕對
+                                
                                 m = _reANY.search(
                                     r'<a[^>]+href=["\']https?://(?:www|m)\.facebook\.com/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
                                     html2, flags=_reANY.I | _reANY.S
@@ -1178,7 +1178,7 @@ def inspect_url(url: str) -> dict:
                                     cand, nxt = m.group(1), (m.group(2) or "").lower()
                                     if cand.lower() not in bad_first and nxt in allowed_next:
                                         data["basic"]["owner_url"] = f"https://m.facebook.com/{cand}"
-                                # 2) 相對
+                                
                                 if not data["basic"].get("owner_url"):
                                     m = _reANY.search(
                                         r'<a[^>]+href=["\']/([A-Za-z0-9._-]+)(?:/([A-Za-z0-9._-]+))?(?:\?[^"\']*)?["\']',
@@ -1189,7 +1189,7 @@ def inspect_url(url: str) -> dict:
                                         if cand.lower() not in bad_first and nxt in allowed_next:
                                             data["basic"]["owner_url"] = f"https://m.facebook.com/{cand}"
 
-                            # 4) 若還沒有 page_followers，就去 owner_url 抓粉專/社團數字
+                            
                             owner_for_follow = data["basic"].get("owner_url")
                             if data["basic"].get("page_followers") is None and owner_for_follow:
                                 html_owner = None
@@ -1207,30 +1207,30 @@ def inspect_url(url: str) -> dict:
                                         page_basic = parse_fb_page_basic(html_owner)
                                         if page_basic.get("followers") is not None:
                                             data["basic"]["page_followers"] = page_basic["followers"]
-                            # 3.7a) 若 owner 仍是 profile.php，嘗試透過含「粉絲專頁 / Page」語意的錨點來升級為粉專 slug
+                            
                             cur_owner_tmp = data["basic"].get("owner_url")
                             if (not cur_owner_tmp) or ("profile.php" in cur_owner_tmp):
                                 _slug_by_label = _extract_page_slug_by_label(html2)
                                 if not _slug_by_label:
-                                    _slug_by_label = _extract_page_slug_by_label(html)  # 也嘗試從第一次抓到的 html 補救
+                                    _slug_by_label = _extract_page_slug_by_label(html)  
                                 if _slug_by_label:
                                     data["basic"]["owner_url"] = f"https://m.facebook.com/{_slug_by_label}"
 
-                            # 3.7a-rl) 新增：從 <a role="link" ...> 抽出粉專 slug（優先於一般 anchor）
+                            
                             if not data["basic"].get("owner_url"):
                                 _slug_role2 = _extract_owner_slug_from_role_link(html2) or _extract_owner_slug_from_role_link(html)
                                 if _slug_role2:
                                     data["basic"]["owner_url"] = f"https://m.facebook.com/{_slug_role2}"
-                            # 3.7b) 直接從 html2 的 <a href="https://www.facebook.com/<slug>"> 抽出 owner
+                            
                             if not data["basic"].get("owner_url") or "profile.php" in (data["basic"].get("owner_url") or ""):
                                 _slug_from_a2 = _extract_owner_from_anchors(html2)
                                 if _slug_from_a2:
                                     data["basic"]["owner_url"] = f"https://m.facebook.com/{_slug_from_a2}"
 
-                            # 3.8) 最終強制修正：
-                            # 若 owner_url 仍為 profile.php（常見於 Reels 頁將作者導向個人檔案），
-                            # 但頁面中存在明確的粉專 slug 連結（如 https://www.facebook.com/ETtoday），
-                            # 則直接覆蓋為 slug 形式，提升後續追蹤數解析成功率。
+                            
+                            
+                            
+                            
                             cur_owner = data["basic"].get("owner_url")
                             if cur_owner and "profile.php" in cur_owner:
                                 _slug_final = _extract_owner_from_anchors(html2) or _extract_owner_from_anchors(html)
@@ -1238,7 +1238,7 @@ def inspect_url(url: str) -> dict:
                                     data["basic"]["owner_url"] = f"https://m.facebook.com/{_slug_final}"
                                     cur_owner = data["basic"]["owner_url"]
 
-                            # 若 followers 仍為空，使用修正後的 owner_url 再補抓一次粉專追蹤數
+                            
                             if data["basic"].get("page_followers") is None and data["basic"].get("owner_url") and "/groups/" not in data["basic"]["owner_url"]:
                                 owner_for_follow = data["basic"]["owner_url"]
                                 html_owner = None
@@ -1257,7 +1257,7 @@ def inspect_url(url: str) -> dict:
                                             data["basic"]["page_followers"] = n2
                         except Exception:
                             pass
-                    # 更新 meta：記錄實際解析的最終 URL
+                    
                     rewritten_url = final_u or rewritten_url
                     was_rewritten = was_rewritten or bool(final_u and final_u != url)
     except Exception:
